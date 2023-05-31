@@ -15,13 +15,16 @@ namespace game
     {
         Cell[] cells = new Cell[100];
         string lastCellValue = "";
+        int ticksSpeed = 3000;
+        int score = 0;
+        int found = 0;
 
         public Form1()
         {
             InitializeComponent();
-            FillCells();
-            FillDataGrid();
-            UpdateDataGrid();            
+            FillCells();           
+            dataGridView1.Enabled = false;
+            UpdateScore();
         }
 
         private void TimerEventProcessor(Object myObject,
@@ -32,6 +35,15 @@ namespace game
             MessageBox.Show("");
         }
 
+        public void UpdateFound()
+        {
+            label14.Text = "Found: " + this.found + " / 100";
+        }
+
+        public void UpdateScore()
+        {
+            labelScore.Text = this.score.ToString();
+        }
 
         public void FillCells()
         {
@@ -62,19 +74,6 @@ namespace game
             int x = value / 10;
             int y = value % 10;
             return (x, y);
-        }
-
-        public void UpdateDataGrid()
-        {            
-            int count = 0;
-            for (int row = 0; row < 10; row++)
-            {
-                for (int column = 0; column < 10; column++)
-                {
-                    //dataGridView1.Rows[row].Cells[column].Value = cells[count].value;
-                    count++;
-                }
-            }
         }
 
         public void ShowAllCellsWithValue(string value)
@@ -135,6 +134,18 @@ namespace game
             return check == amount;
         }
 
+        private void TurnOffAll(Object myObject, EventArgs myEventArgs)
+        {
+            myTimer.Stop();
+            for (int row = 0; row < 10; row++)
+            {
+                for (int column = 0; column < 10; column++)
+                {
+                    dataGridView1[column, row].Style.BackColor = Color.White;
+                }
+            }
+        }
+
         public void FireAllCells(string cellValue)
         {            
             int amount = 0;
@@ -144,6 +155,9 @@ namespace game
                 {
                     (int x, int y) index = TransformToCoords(amount);
                     dataGridView1[index.y, index.x].Style.BackColor = Color.Coral;
+                    myTimer.Tick += new EventHandler(TurnOffAll);
+                    myTimer.Interval = 350;
+                    myTimer.Start();
                 }
                 amount++;
             }
@@ -165,7 +179,7 @@ namespace game
                     this.lastCellValue = dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();
                     ShowAllCellsWithValue(dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString());
                     myTimer.Tick += new EventHandler(HideAll);
-                    myTimer.Interval = 2000;
+                    myTimer.Interval = ticksSpeed;
                     myTimer.Start();
                 }
                 else if (this.lastCellValue == this.cells[index].value.ToString())
@@ -173,14 +187,22 @@ namespace game
                     dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value = this.cells[index].value;
                     this.cells[index].isChecked = true;
                     if (IsEveryCellChecked(this.cells[index].value.ToString()))
+                    {
                         FireAllCells(this.cells[index].value.ToString());
                         this.lastCellValue = "";
+                    }
+                    this.score = this.score + 100000 / ticksSpeed;
+                    this.found++;
+                    UpdateFound();
+                    UpdateScore();
+                    if (this.found == 100)
+                        MessageBox.Show("You won!", "Congratulations", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 else
                 {
-                    
-                }
-                
+                    this.score = this.score - 100000 / 2125;
+                    UpdateScore();
+                }                
             }
         }
 
@@ -193,16 +215,40 @@ namespace game
         {
             ShowAllCellsWithValue(this.lastCellValue);
             myTimer.Tick += new EventHandler(HideAll);
-            myTimer.Interval = 2000;
+            myTimer.Interval = ticksSpeed;
             myTimer.Start();
+            this.score = this.score - 100000 / 2125;
+            UpdateScore();
         }
 
         private void buttonReset_Click(object sender, EventArgs e)
         {
-            FillCells();
-            this.lastCellValue = "";
+            if (dataGridView1.Enabled)
+            {
+                FillCells();
+                this.lastCellValue = "";
+                dataGridView1.Rows.Clear();
+                FillDataGrid();
+                this.score = 0;
+                UpdateScore();
+                this.found = 0;
+                UpdateFound();
+                dataGridView1[0, 0].Selected = false;
+            }
+        }
+
+        private void buttonStart_Click(object sender, EventArgs e)
+        {
             dataGridView1.Rows.Clear();
             FillDataGrid();
+            dataGridView1.Enabled = true;
+            dataGridView1.ClearSelection();
+        }
+
+        private void trackBar1_Scroll(object sender, EventArgs e)
+        {
+            this.ticksSpeed = trackBar1.Value * 250;
+            label12.Text = "Speed: " + trackBar1.Value;
         }
     }
 
